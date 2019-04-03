@@ -1,0 +1,126 @@
+gexec (0.5.4) unstable; urgency=medium
+
+  * Upon first use by a given user, gexec will remove any its (from prior versions)
+    pre-existing settings files from the user's home directory. It will create,
+    if found missing, a ~/.config/gexec/ directory. Each run, plaintext files
+    "gexec.conf" and "gexec__history" are created therein and will be regenerated
+    if found missing. (Missing, as in, accidentally deleted, or had been excluded
+    during antiX persist-save // live-remaster // snapshot operation).
+
+  * Supplemental to the above, gexec will test to detect (similar to 'which xterm')
+    available terminal emulator applications, automatically populating the
+    default choice within its settings file. Currently (subject to change) the order
+    of preference when checking/autoselecting a terminal emulator application is:
+    urxvt, roxterm, xfce4-terminal, xterm. If none of these are available, gexec will
+    fallback to assigning x-terminal-emulator within its settings file.
+
+  * gexec.conf stores two user-reconfigurable gexec configuration options:
+      - cmd_termemu (terminal emulator program called if "Run in terminal" is ticked).
+      - history_max (self-explanatory, prepopulated default value = 40)
+    As explained in the manpage, history logging can disabled by specifying hist_max=0
+    within the gexec.conf file
+
+  * The expanded manpage now mentions the possibility to edit gexec config file,
+    in addition to mentioning availability of runtime options. 
+
+  * manpage now lists features/quirk specific each of several terminal emulator
+    programs, and provides a suitable example gexec.conf line for each of them.
+
+  * Toward avoiding redundant history entries, commandstrings are now trimmed of
+    leading/trailing space before beinging added to the history list
+
+  * a notable bulletpoint change from previous versions:
+    When "run as Root" is selected, gexec is now hardcoded to invoke the gksu program.
+  
+  * history_max (default: 40); Does not store multiple records of identical commandstrings.
+
+  * usability tweak: added attribute "always open center of screen" for the gexec window
+
+  * To preclude mindlessly pressing Enter key and accidentally (re)running a
+    previously-issued command when items exist in the gexec history, upon launch, the
+    command entry box will _NOT_ be pre-populated with the most-recently-used command.
+    (todo: this behavior could, instead, become a configurable user option)
+
+  * Supplemental to the above: when KeepOpen is in effect, the RunAsRoot option will be
+    automatically de-selected (must be re-selected) each time a program is launched.
+
+  * tickbox "Run as root" is not displayed if the user is already running as root
+    (although that should never occur, riiiiight?)
+
+  * related to the above: each time the user PASTES text into the runbox, gexec displays
+    a warning dialog mentioning "pasting commandstrings from web pages or other rich-text
+    encoded documents is ill-advised". By design, this warn-on-paste popup 
+    (is non-configurable) cannot be disabled.
+
+  * Makefile: merged debian patches (00_previous.patch and 01_buildflags.patch)
+
+  * added a statement into the manpage stating the copy/paste warning, along with
+    several reference pages (archive.org URLs) which provide detailed explanations
+    of the risks.
+
+  * todo: choose a consistent behavior regarding paste events. Currently, a paste
+    from clipboard operation generates a "nag" but, ultimately, is allowed...
+    vs paste from primary selection (which is currently nagged+blocked)
+
+  * debian has nixed the gexec package bugtracker page.
+    Check for reported bugs, and pull requests, across other distros.
+    (done: only 1 found ~~ "Display "Run as root" checkbox only if not running as root")
+
+  * Currently, by design, gexec history does store "failed" commandstrings.
+    If it did not do so, the user would lose ability to scrollback and examine
+    "What did I type last time?" toward editing/fixing the previously attempted
+    command. TODO: upon addition of a gexec logging feature, reconsider whether
+    failed commands should be excluded from history. Ultimately, gexec is blind
+    to the success/failure in terms of the user's desired or expected outcome;
+    the launched child process is, essentially, immediately disowned and forgotten.
+
+  * as of v0.5.4, gexec now enforces a much more strict set of "forbidden" characters,
+    compared to the shell_escape() typically performed by other runner programs.
+    (Further testing may uncover a need to relax the set of characters.)
+    Also (begs ongoing further testing) gexec currently does not shell_quote() each
+    argv portion of the commandstring passed to backend terminal or to gksu,
+    nor does it encase the entire passed commandstring in quotes. This behavior
+    is intended to avoid QUIRKS noticed across tested terminal emulator programs
+    and to hopefully better achieve UTF-8 support, and to achieve clean (WYSIWYG)
+    input when passing to gksu.
+
+  * noted (unchanged): with the expectation that gexec will be assigned to a
+    keybind, the package does not ship a .desktop file
+
+  * disabled the --name=NAME option (caller could alter the namestring displayed
+    in gexec's window! Why?) (the option was provided by, inherited from, GTK+)
+
+  * removed the tabbed autocompletion feature. Confusingly, it had matched against
+    names of programs throughout pathed directories, but NOT from gexec history.
+    It was also blind to whether or not a given prog must be run in terminal.
+    This could lead to (a tested example): attempting launch a surfaced-by-autocomplete
+    instance of antix-cli-cc (presumes the user did not realize MUST run in terminal)
+    would result in a hung process (100% CPU utilization, 1 core) 
+
+ -- skidoo <email@redact.ed>  Wed, 27 Mar 2019 11:22:33 +0000
+
+gexec (0.4-2) unstable; urgency=medium
+
+  * QA upload
+  * Set maintainer to Debian QA Group
+  * Updated to debhelper 10
+  * Enabled build hardening
+  * Converted copyright to DEP-5
+  * Removed redundant watch file
+  * Added homepage
+  * Standards version 3.9.8
+
+ -- David William Richmond Jones <dwrj87@gmail.com>  Tue, 22 Nov 2016 08:14:53 +0000
+
+gexec (0.4-1) unstable; urgency=low
+
+  * New upstream release (closes: #413614)
+  * debian/gexec.1: removed, it's now included in upstream source
+
+ -- Johann Rudloff <cypheon@gmx.net>  Mon,  2 Apr 2007 10:43:03 +0200
+
+gexec (0.3-1) unstable; urgency=low
+
+  * Initial release
+
+ -- Johann Rudloff <cypheon@gmx.net>  Wed, 17 Jan 2007 07:04:57 +0100

@@ -1,0 +1,122 @@
+.TH GEXEC 1 "March  26, 2019"
+.SH NAME
+gexec \- Interactive run dialog
+.SH SYNOPSIS
+.B gexec
+.RI [ options ]
+.SH DESCRIPTION
+.PP
+\fBgexec\fP is a program that displays a small interactive command execution
+dialog (aka "runner" or "runbox"). Its features include a combobox to recall
+previously-used commandstrings from saved history, and UI tickboxes to
+optionally specify "run in terminal" and/or "run as root". An additional tickbox
+optionally enables "Keep Open this dialog after launch"; by default, gexec immediately
+closes the dialog and exits after launching the requested command.
+.PP
+When "run as root" has been selected, gexec passes the requested command to
+.B gksu
+to obtain elevated permissions.
+
+.SH OPTIONS
+.TP
+.B \-h, \-\-help
+Show summary of options
+.TP
+.B \-k, \-\-keepopen
+Keep gexec open after executing a command
+.SH FILES
+~/.config/gexec/gexec.conf
+.br
+~/.config/gexec/gexec__history
+.br
+/usr/share/doc/gexec/README
+.br
+/usr/bin/gexec
+.br
+/usr/share/man/man1/gexec.1.gz
+.SH CONFIGURATION
+The first time you launch gexec, it will (perform a check for available terminal emulator
+applications and) create a ~/.config/gexec/gexec.conf file. You can edit this file to specify
+a different terminal emulator program to be used by the gexec "Run in terminal" option.
+.PP
+During each run, gexec populates a list of previously-executed commands to a  ~/.config/gexec/gexec__history 
+history list file. By default, it will retain a list of 40 entries (duplicates of identical entries
+are not retained). You can specify a different list length within gexec.conf and you can disable
+the gexec
+.\'      logging 
+.\'      LOGGING IS A FEATURE SEPARATE FROM HISTORY. LOGGING IS NOT (YET) IMPLEMENTED.
+.\'
+history feature by specifying zero (or 0, your choice) as the value.
+.PP
+During each run, if the gexec.conf file is absent (due to accidental deletion, or exclusion during
+persist-save, snapshot, or remastering operation) gexec will regenerate the file, repopulating
+each of its settings with default values.
+
+.SH CHOOSING A COMPANION TERMINAL EMULATOR PROGRAM
+When choosing a terminal emulator program for use with the gexec "Run in Terminal" option,
+bear in mind that some do not support copy-to-clipboard. In that case, you can usually
+(i.e. across many terminal emulator programs that I have tested) highlight a portion of
+the terminal output, then switch to another window (keybind assigned to Alt+Tab in most
+desktop environments) and press mouse2 aka middle mouse button to paste the "selection text".
+.PP
+Below are some tested, working, gexec.conf lines for a few terminal emulators,
+along with notes describing features/quirks related to each:
+.PP
+roxterm --disable-sm -e %s
+.br
+supports Ctrl+Shift+C copy to clipboard
+.br
+quotes around passed cmd arg are optional (ok with, or without single//double-quoted cmd arg)
+.PP
+
+urxvt -e %s
+.br
+does not support Ctrl+Shift+C copy to clipboard
+.br
+must NOT place quotes around the commandstring arg passed to urxvt
+.PP
+
+xfce4-terminal -e \"%s\"
+.br
+supports Ctrl+Shift+C copy to clipboard
+.br
+xfce4-terminal demands use of quotes (single or double) for the passed commandstring arg
+.PP
+
+xterm -e %s
+.br
+does not support Ctrl+Shift+C copy to clipboard
+.br
+quotes around passed cmd arg are optional (ok with, or without single//double-quoted cmd arg)
+
+.SH USAGE NOTES
+.HP
+.br 
+You should
+.B NEVER
+copy/paste web-snipped code directly into terminal, nor into gexec runbox !
+.br
+You should NEVER
+.B copy/paste
+web-snipped code directly into terminal, nor into gexec runbox !
+.br
+You should NEVER copy/paste web-snipped code
+.B directly
+into terminal, nor into gexec runbox !
+.PP
+.B What you see (characters displayed within a markup document) is not necessarily what you get.
+.br
+Here are links to a few references which explain the risks:
+.PP
+https://web.archive.org/web/20190119085628/https://nakedsecurity.sophos.com/2016/05/26/why-you-cant-trust-things-you-cut-and-paste-from-web-pages/
+.PP
+https://web.archive.org/web/20190207130228/https://www.reddit.com/r/netsec/comments/1bv359/dont_copypaste_from_website_to_terminal_demo/
+.PP
+https://web.archive.org/web/20190207130231/https://news.ycombinator.com/item?id=5508225
+.PP
+https://web.archive.org/web/20190313220603/https://github.com/dxa4481/Pastejacking
+.PP
+
+.SH AUTHOR
+gexec was originally written by Ferry Boender back around 2006; modified by skidoo in 2019
+

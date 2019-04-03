@@ -1,0 +1,16 @@
+Source: gexec
+Section: x11
+Priority: optional
+Maintainer: Debian QA Group <packages@qa.debian.org>
+Build-Depends: debhelper (>= 10), libgtk2.0-dev, libglib2.0-dev
+Homepage: https://gitlab.com/skidoo/gexec
+Standards-Version: 3.9.8
+
+Package: gexec
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}, gksu
+Suggests: xterm
+Description: 
+ gexec displays an interactive command execution dialog (aka runner, runbox).
+ Its features include saved history, and options to specify "run in terminal",
+ "run as root", and "Keep Open this dialog after launch".
