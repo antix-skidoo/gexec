@@ -13,8 +13,11 @@ Changes in version 0.5.4:
 * a detailed list of changes is provided within the debian/changelog file
 
 Version           : 0.5.4
+
 Original Author   : Ferry Boender ( see: http://www.electricmonk.nl )
+
 License           : General Public License Version 2
+
 homepage          : http://www.gitlab.com/skidoo/gexec
 
 
