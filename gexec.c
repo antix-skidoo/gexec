@@ -105,9 +105,8 @@ static GtkWidget *win_main;
 static GtkWidget *pesky_chksu;
 gboolean keepopen = FALSE;
 gboolean want_debug = FALSE;
-gboolean dirty_multiline = FALSE;
-gboolean dirty_contains_ctrl_chars = FALSE;
 gchar *errordetails;
+gchar *user_homedir, *ourconfdir, *ourconffile, *ourhistfile, *oldconffile, *oldhistfile = NULL;
 
 
 struct _task {
@@ -188,35 +187,44 @@ task_cmd_su_set (struct _task *task, char *cmd_su) {
 
 
 
+
+
+void
+pathstrings_create ()
+{
+	user_homedir = g_strndup (  (gchar*)g_get_home_dir(),  1024  );   //     /home/demo    (no trailing slash)
+	//   ^--- is subject to tainting, ala  getenv()
+	ourconfdir   = g_build_filename (user_homedir, ".config", "gexec", NULL);
+	ourconffile  = g_build_filename (user_homedir, ".config", "gexec", "gexec.conf", NULL);
+	ourhistfile  = g_build_filename (user_homedir, ".config", "gexec", "gexec__history", NULL);  //     /home/demo/.config/gexec__history
+	oldconffile  = g_build_filename (	user_homedir,		 ".gexec" , NULL);
+	oldhistfile  = g_build_filename (	user_homedir,		 ".gexec_history" , NULL);
+}
+
+void
+pathstrings_free () 
+{
+	g_free(user_homedir);
+	g_free(ourconfdir);
+	g_free(ourconffile);
+	g_free(ourhistfile);
+	g_free(oldconffile);
+	g_free(oldhistfile);
+}
+
 void
 settings_create () {
 	FILE *f_out = NULL;
-	char *filename = NULL;
-	gchar *user_homedir, *ourconfdir, *ourconffile, *ourhistfile, *oldconffile, *oldhistfile = NULL;
 
-	user_homedir = (gchar*)g_get_home_dir();                                           //     /home/demo    (no trailing slash)
-	int doof = strlen(user_homedir);
-	if (doof <= 2 ){                             //     ? guest login has no homedir?
+	if ( strlen(user_homedir) <= 2 ){                             //     ? guest login has no homedir?
 		//       THE g_get_home_dir() DOC SEZ
 		// "If the path given in HOME is non-absolute, does not exist, or is not a directory, the result is undefined."
 		//       ^------------- DOES THE FN PRESUME $HOME var is set, is non-empty?
-		//
 		// Well, strlen "returns the offset of the terminating null byte within the array"
-		g_free(user_homedir);
 		return;
 	}
 
-	ourconfdir   = g_build_filename (user_homedir, ".config", "gexec", NULL);
-	ourconffile  = g_build_filename (user_homedir, ".config", "gexec", "gexec.conf", NULL);
-	ourhistfile  = g_build_filename (user_homedir, ".config", "gexec__history", NULL);  //     /home/demo/.config/gexec__history
-	oldconffile  = g_build_filename (	user_homedir,		 ".gexec" , NULL);
-	oldhistfile  = g_build_filename (	user_homedir,		 ".gexec_history" , NULL);
-
-	filename = (char *)malloc(sizeof(char) * strlen(user_homedir) + 15 + 1 );
-	//sprintf(filename, "%s/.gexec", getenv("HOME"));
-	sprintf (filename, "%s/.config/gexec/gexec.conf", user_homedir);
-	f_out = fopen(filename, "w");
-
+	f_out = fopen(ourconffile, "w");
 	if (f_out == NULL)
 	{         // attempt cleanup of prior version files
 		if ( g_file_test (oldconffile, G_FILE_TEST_IS_REGULAR) )
@@ -234,10 +242,8 @@ settings_create () {
 		fp=fopen(ourhistfile,"w");
 		fclose(fp);
 	}
-	
-	filename = (char *)malloc(sizeof(char) * strlen(ourconffile) + 15 + 1 );
-	sprintf (filename, "%s", ourconffile);
-	f_out = fopen (filename, "w");
+
+	f_out = fopen (ourconffile, "w");
 	if (f_out != NULL)
 	{
 		gchar *theurv = g_strconcat ("urxvt", NULL);
@@ -249,7 +255,7 @@ settings_create () {
 		foundroxterm = g_strconcat (g_find_program_in_path (therox), NULL);
 
 		gchar *thexfce = g_strconcat ("xfce4-terminal", NULL);
-			gchar *foundxfce = NULL;
+		gchar *foundxfce = NULL;
 		foundxfce = g_strconcat (g_find_program_in_path (thexfce), NULL);
 
 		gchar *thexterm = g_strconcat ("xterm", NULL);
@@ -283,24 +289,14 @@ settings_create () {
 		fprintf(f_out, "history_max=%i\n", DEFAULT_HISTMAX);
 		fclose(f_out);  /////////////  hmmmm, if f_out HAD been null, still need to close the handle?
 	}
-
-	g_free(user_homedir);
-	g_free(ourconfdir);
-	g_free(ourconffile);
-	g_free(ourhistfile);
-	g_free(oldconffile);
-	g_free(oldhistfile);
-
-	free(filename);
 	return;
 }
 
 
 struct _settings *settings_read() {
 	FILE *f_in = NULL;
-	char *filename = NULL;
 	struct _settings *settings = NULL;
-	char line[4096];
+	char line[1024];    // ========================   howdy         1024 should be sufficient ?
 	settings = malloc(sizeof(struct _settings));
 
 	gchar *theurv = g_strconcat("urxvt", NULL);
@@ -345,14 +341,9 @@ struct _settings *settings_read() {
 	settings->cmd_su = DEFAULT_CMD_SU;
 	settings->history_max = DEFAULT_HISTMAX;
 
-	filename = (char *)malloc(sizeof(char) * (strlen(getenv("HOME")) + 15 + 1) );
-	//sprintf(filename, "%s/.gexec", getenv("HOME"));
-	sprintf(filename, "%s/.config/gexec/gexec.conf", getenv("HOME"));
-
-	f_in = fopen(filename, "r");
-
+	f_in = fopen(ourconffile, "r");
 	if (f_in != NULL) { 
-		while (fgets(line, 4096, f_in)) {
+		while (fgets(line, 1024, f_in)) {
 			char *newline_pos;
 			char **tokens;
 			newline_pos = strchr(line, '\n');
@@ -368,16 +359,13 @@ struct _settings *settings_read() {
 			if (strcmp(tokens[0], "history_max") == 0 && tokens[1] != NULL) {
 				settings->history_max = atoi(tokens[1]);  // returns 0 if non-numeric
 			}
-
 			g_strfreev(tokens);  // tokens is an array of strings
 		}
-
 		fclose(f_in);
 	} else {
 		settings_create();  // No settings yet; create default settings
 	}
 
-	free(filename);
 	return(settings);
 }
 
@@ -385,28 +373,20 @@ struct _settings *settings_read() {
 GList *history_read()
 {
 	FILE *f_in = NULL;
-	char *filename = NULL;
 	GList *history = NULL;
-	char line[4096];
-	filename = (char *)malloc(sizeof(char) * (strlen(getenv("HOME")) + 15 + 1) );
-	//sprintf(filename, "%s/.gexec_history", getenv("HOME"));
-	sprintf(filename, "%s/.config/gexec/gexec__history", getenv("HOME"));
+	char line[1024];
 
-	f_in = fopen(filename, "r");
+	f_in = fopen(ourhistfile, "r");
 	if (f_in != NULL) {
-		while (fgets(line, 4096, f_in)) {
+		while (fgets(line, 1024, f_in)) {
 			char *newline_pos;
 			newline_pos = strchr(line, '\n');
 			newline_pos[0] = '\0';
-			///// manual edits may have introduced blank lines
-			if (strlen(line) >= 1)
+			if (strlen(line) >= 1)  ///// manual edits may have introduced blank lines
 				history = g_list_append(history, strdup(line));
 		}
-
 		fclose(f_in);
 	}
-
-	free(filename);
 	return(history);
 }
 
@@ -417,19 +397,14 @@ history_write(GList *history, int history_max) {
 	
 	if (history_max == 0)
 		return 0;
-		
-	char *filename = NULL;
+
 	FILE *f_out;
 	GList *cur = NULL;
 	int count = 0;
 	int erwrite = 0;
 
-	filename = (char *)malloc(sizeof(char) * (strlen(getenv("HOME")) + 15 + 1) );
-	//sprintf(filename, "%s/.gexec_history", getenv("HOME"));
-	sprintf(filename, "%s/.config/gexec/gexec__history", getenv("HOME"));
-
 	cur = history;
-	f_out = fopen(filename, "w");
+	f_out = fopen(ourhistfile, "w");
 
 	if (f_out != NULL) {
 		while (cur != NULL && count != history_max) {
@@ -442,8 +417,6 @@ history_write(GList *history, int history_max) {
 	} else {
 		erwrite = -1;
 	}
-
-	free(filename);
 	return(erwrite);
 }
 
@@ -452,23 +425,19 @@ void
 task_history_add(struct _task *task, char *command) {
 	GList *new_history = NULL;
 	GList *iter = NULL;
-
 	assert(task != NULL);
 	assert(command != NULL);
 
 	new_history = g_list_append(new_history, strdup(command));
-
 	iter = task->history;
 	while (iter != NULL) {
 		// Skip duplicates of 'command'
 		if (strcmp(iter->data, command) != 0) {
 			new_history = g_list_append(new_history, strdup(iter->data));
 		}
-
 		free(iter->data);
 		iter = g_list_next(iter);
 	}
-
 	g_list_free(task->history);
 	task->history = new_history;
 }
@@ -497,7 +466,7 @@ example_iterateover (void)
 */
 
 int
-cmd_run(struct _task *task, char **errormsg) {  //////////   SOLE CALLER IS  ui_cmd_run()
+finalcommand_run(struct _task *task, char **errormsg) {  //////////   SOLE CALLER IS  ui_cmd_run()
 	char *final_command = NULL;
 	int argc;
 	char **argv;
@@ -708,10 +677,20 @@ ui_cmd_run(struct _task *task) {
 	int err = 0;
 	char *errormsg = NULL;
 
-	if (strlen(task->command) < 1)
-		err = -6;
+	if (strlen(task->command) < 1) {
+		ui_errdialog("nothing to do ~~ the entrybox is currently empty");
+		return;
+	}
 
-	err = cmd_run(task, &errormsg);  // xref: "ernum"
+	if (strlen(task->command) > 640)
+	{
+		ui_errdialog("EXCESSIVELY LONG COMMANDSTRING\n\nBecause overly long strings typically indicate content has "  \
+		      "been blindly PASTED, and such content cannot be easily inspected (by left--right scrolling to view "  \
+		      "within the tiny entrybox), gexec will refuse to process commandstrings longer than 640 characters.");
+		return;  // by design, to annoy, we do not blank the commandstring (nor restore entrybox focus + cursor position)
+	}
+
+	err = finalcommand_run(task, &errormsg);  // xref: "ernum"
 	switch (err) {
 		case -1:
 			ui_errdialog("Invalid command syntax\n\n (or empty, no command specified)\n\n\nTip: " \
@@ -740,7 +719,7 @@ ui_cmd_run(struct _task *task) {
 			break;         //     nixme   settings_check() would have assigned x-terminal-emulator
 			                   // (which may be misconfigured, but would not cause us to arrive here due to "cannot find")
 		case -6:
-			////// task->command has been emptied|blanked just now
+			////// task->command has been emptied|blanked just now      ========= howdy  currently this case is unused
 			break;
 		default:
 			task_history_add(task, task->command);
@@ -787,8 +766,7 @@ ui_combo_command_cb_key_press_event(GtkWidget *widget, GdkEventKey *event, struc
 {
 	if (event->keyval == GDK_Escape) {
 		gtk_main_quit();
-	}
-	else {
+	} else {
 		task_command_set( task, (char *)gtk_entry_get_text(GTK_ENTRY(widget)) );
 	}
 	return(FALSE);
@@ -828,9 +806,13 @@ gk_info_dialog (GtkMessageType type, gchar *format, ...)
 
 gchar *controlwarnmessage = "the commandstring (pasted?) contained control character(s) and has been rejected\n";
 
+//   Yes, toward accommodating URI fragments, we will allow ampersand, questionmark, poundsign, and percent.
+//   Yes, PERCENT char is arguably "legal" (may indicate URLencoded string (%20) or filename containing spaces).
+//          http://www.tldp.org/LDP/abs/html/parameter-substitution.html#PSUB2
+//   In the absence of curly braces, poundsign and percent should be regarded as harmless
 
 gchar *illegalcharmessage = "gexec will refuse to process a commandstring containing any of the following characters:\n\n" \
-		     "   $  DOLLARSIGN\n   \\   BACKSLASH\n   `  BACKTICK\n   &gt;  GREATER_THAN\n   &lt;  LESS_THAN\n   ^  CARET\n   %  PERCENT\n" \
+		     "   $  DOLLARSIGN\n   \\   BACKSLASH\n   `  BACKTICK\n   &gt;  GREATER_THAN\n   &lt;  LESS_THAN\n   ^  CARET\n" \
 		     "   {  LEFT_CURLY_BRACE\n   (  LEFT_PARENTHESIS\n   [  LEFT_SQUARE_BRACKET\n   *  ASTERISK\n   !  EXCLAMATION_POINT\n\n" \
 		     "   ref:  <i>www.tldp.org/LDP/abs/html/special-chars.html</i>\n\n\n" \
 		     "Tip: these \"special characters\" are the building blocks of shell scripts. If your commandstring contains" \
@@ -867,7 +849,6 @@ ui_combo_command_cb_changed(GtkWidget *widget, struct _task *task) {
 				(strchr(&mygcs[i],'<')  != NULL)  ||
 				(strchr(&mygcs[i],'>')  != NULL)  ||
 				(strchr(&mygcs[i],'^')  != NULL)  ||
-				(strchr(&mygcs[i],'%')  != NULL)  ||
 				(strchr(&mygcs[i],'{')  != NULL)  ||
 				(strchr(&mygcs[i],'(')  != NULL)  ||
 				(strchr(&mygcs[i],'[')  != NULL)  ||
@@ -1058,10 +1039,8 @@ on_loaded_timeout (gpointer user_data)
     event->key.send_event = FALSE;
     event->key.time = GDK_CURRENT_TIME;   
     gtk_main_do_event (event);
-
     gdk_event_free (event);
   }
-
   return FALSE;
 }
 
@@ -1093,6 +1072,8 @@ main (int argc, char *argv[]) {
 	GtkWidget *combo_command;
 	GtkWidget *hbox_command, *vbox_cmdstack, *hbox_options, *vbox_optionstack, *hbox_buttons;
 	GtkWidget *btn_ok, *btn_cancel, *btn_help, *vbox_main;
+	
+	pathstrings_create();
 	
 	// Handle commandline options
 	context = g_option_context_new ("- Interactive run dialog"); // stdout helpmsg
@@ -1215,8 +1196,9 @@ main (int argc, char *argv[]) {
 		keepopen = !keepopen;
 	}
 
-	gtk_main ();
+	gtk_main();
 
 	free(task);
+	pathstrings_free();
 	return(0);
 }

@@ -1,3 +1,14 @@
+gexec (0.5.4-1~ski) unstable; urgency=medium
+
+  * bugfix: resolve malloc() error observed on 32-bit systems
+
+  * handle (refuse) excessively long commandstrings.
+
+  * removed % (percent char) from blacklisted chars.
+    (rationale: given the absence of curly braces, it should be considered harmless)
+
+ -- skidoo <email@redact.ed>  Fri, 05 Apr 2019 10:11:12 +0000
+
 gexec (0.5.4) unstable; urgency=medium
 
   * Upon first use by a given user, gexec will remove any its (from prior versions)

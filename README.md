@@ -120,4 +120,3 @@ gExec is Copyright by Ferry Boender, licensed under the General Public License (
 	675 Mass Ave, Cambridge, MA 02139, USA.
 
 	For more information, see the COPYING file supplied with this program.
-
