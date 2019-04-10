@@ -972,7 +972,10 @@ entrypastemenu_cb (GtkWidget *w, GdkEvent *event, char data)  //   data passed i
 gboolean
 entryclicked_cb (GtkWidget *w, GdkEventButton *event, char data) {
 	if (event->type == GDK_BUTTON_PRESS &&  event->button == 2)
+	{
 		gk_info_dialog (GTK_MESSAGE_INFO, pastewarnmessage);
+		return TRUE; // late discovery. need TRUE here
+	}
 
 	// must use false (not fully handled, allow other handlers) else mouse3 ContextMenu is suppressed
 	return FALSE;
