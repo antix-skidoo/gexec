@@ -1005,7 +1005,7 @@ entrypastekey_cb (GtkWidget *w, GdkEventKey *event, gpointer data)
       return FALSE;
   }
 
-  if (wantpaste)
+  if (wantpaste == TRUE)
   {
     gk_info_dialog (GTK_MESSAGE_INFO, pastewarnmessage);  //  verbiage: "rich text"?
     //return TRUE; // TRUE to indicate that the event has been handled, it should not propagate further. 
